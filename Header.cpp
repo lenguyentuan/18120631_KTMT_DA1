@@ -1,7 +1,36 @@
 ﻿#pragma 
 #include"Header.h"
-
-
+//Hàm chuyển QInt thành mảng bit chứa trong mảng bool
+bool* QInt::DecToBin()
+{
+	bool* y = new bool[128];
+	for (int i = 0; i < 128; i++)
+	{
+		y[i] = (bytes[i / 8] >> (7 - i % 8)) & 1;
+	}
+	return y;
+}
+//Hàm chuyển mảng bit thành QInt
+QInt QInt::BinToDec(bool* bit)
+{
+	QInt Dec;
+	for (int i = 0; i < 128; i++)
+	{
+		Dec.bytes[i / 8] = (bit[i] << (7 - i % 8)) | Dec.bytes[i / 8];
+	}
+	return Dec;
+}
+string QInt::printQInt(int base)
+{
+	string kq;
+	if (base == 2)
+		kq = this->bintostring(1);
+	if (base == 10)
+		kq = this->bintodec(this->bintostring(0));
+	if (base == 16)
+		kq = this->bintohex(this->bintostring(0));
+	return kq;
+}
 QInt::QInt()
 {
 	//xet tat ca bit = 0
@@ -12,7 +41,158 @@ QInt::QInt()
 QInt::~QInt()
 {
 }
+QInt QInt::operator =(const QInt X)
+{
+	for (int i = 0; i < 16; i++)
+	{
+		bytes[i] = X.bytes[i];
+	}
+	return *this;
+}
+//Cong 2 so QInt
+QInt operator+(const QInt& A, const QInt &B)
+{
+	int du = 0;
+	QInt C;
+	for (int i = 15; i >= 0; i--)
+	{
+		int temp = 0;
+		bitset<8> num1(A.bytes[i]);
+		bitset<8> num2(B.bytes[i]);
+		bitset<8> num3;
+		for (int j = 0; j < 8; j++)
+		{
+			temp = num1[j] + num2[j] + du;
+			du = temp / 2;
+			num3[j] = temp - 2 * du;
+		}
+		C.bytes[i]= (unsigned char)num3.to_ulong();
+	}
+	return C;
+}
 
+QInt operator-(const QInt& A, const QInt& B)
+{
+	QInt C = ~B;
+	int temp = 1;
+	QInt D;
+	D.bytes[15] = unsigned char(1);
+	C = C + D;
+	C = A + C;
+	return C;
+}
+QInt operator*(const QInt& M, const QInt& Q)
+{
+	QInt A;
+	bitset<1> Q1;
+	bitset<1> Q0;
+	QInt Qt = Q;
+	int k = 128;
+		while (k > 0)
+		{
+			bool temp = (Qt.bytes[15] >> 0) & 1;
+			if (Q1.none() == true && temp == 1)
+			{
+				A = A - M;
+			}
+			else if (Q1.none() == false && temp == 0)
+			{
+				A = A + M;
+			}
+			Q1 = (Qt.bytes[15] >> 0) & 1;
+			Qt = Qt >> 1;
+			Q0 = (bool)((A.bytes[15] >> 0) & 1);
+			if (Q0.none() == true)
+			{
+				Qt.bytes[0]=(~(1 << 7)& Qt.bytes[0]);
+			}
+			else
+			{
+				Qt.bytes[0]=(1 << 7) | Qt.bytes[0];
+			}
+			A = A >> 1;
+			if ((bool)((A.bytes[0] >> 6) & 1) == 1)
+			{
+				A.bytes[0] = (1 << 7) | A.bytes[0];
+			}
+			else
+			{
+				A.bytes[0] = (~(1 << 7) & A.bytes[0]);
+			}
+			k--;
+		}
+		return Qt;
+
+}
+
+QInt operator/(const QInt& Q, const QInt& M)
+{
+	QInt Q1, M1;
+	Q1 = Q;
+	M1 = M;
+	QInt num_zero;
+	int k = 128;
+	QInt A;
+	int sign = 0;
+	bool x = (Q1.bytes[0] >> 7) & 1;
+	if ((bool)((Q1.bytes[0]>>7)&1)==1&&(bool)((M1.bytes[0]>>7)&1)==1)
+	{
+		Q1 = num_zero - Q1;
+		M1 = num_zero - M1;
+	}
+	if (((bool)(Q1.bytes[0]>>7)&1)==0&& (bool)((M1.bytes[0]>>7)&1)==1)
+	{
+		M1 = num_zero - M1;
+		sign = 1;
+	}
+	if (((bool)(Q1.bytes[0] >> 7) & 1) == 1 && (bool)((M1.bytes[0] >> 7) & 1) == 0)
+	{
+		Q1 = num_zero - Q1;
+		sign = 1;
+	}
+	while (k > 0)
+	{
+		//Shift left [A, Q]
+		bool* bitA = A.DecToBin();
+		bool* bitQ = Q1.DecToBin();
+		for (int i = 0; i < 127; i++)
+		{
+			bitA[i] = bitA[i + 1];
+		}
+		bitA[127] = bitQ[0];
+		for (int i = 0; i < 127; i++)
+		{
+			bitQ[i] = bitQ[i + 1];
+		}
+		bitQ[127] = 0;
+
+		Q1 = Q1.BinToDec(bitQ);
+		A = A.BinToDec(bitA);
+		A = A - M1;
+		if ((A.bytes[0]>>7)&1==1)
+		{
+			bool* bitQ = Q1.DecToBin();
+			bitQ[127] = 0;
+			Q1 = Q1.BinToDec(bitQ);
+			A = A + M1;
+		}
+		else
+		{
+			bool* bitQ = Q1.DecToBin();
+			bitQ[127] = 1;
+			Q1 = Q1.BinToDec(bitQ);
+		}
+		k = k - 1;
+	}
+	if (sign == 0)
+	{
+		return Q1;
+	}
+	if (sign == 1)
+	{
+		return num_zero - Q1;
+	}
+}
 QInt QInt::operator&(const QInt & B) const
 {
 	QInt des;
@@ -53,7 +233,6 @@ QInt QInt::operator~() const
 	}
 	return des;
 }
-
 QInt QInt::operator>>(int nums) const
 {
 	QInt des = *this;
@@ -67,7 +246,14 @@ QInt QInt::operator>>(int nums) const
 				des.bytes[i] = ((1 << 7) | des.bytes[i]);
 			}
 		}
-		des.bytes[0] = des.bytes[0] >> 1;
+		if ((bool)((des.bytes[0] >> 7) & 1) == 1)
+		{
+
+			des.bytes[0] = des.bytes[0] >> 1;
+			des.bytes[0] = ((1 << 7) | des.bytes[0]);
+		}
+		else
+			des.bytes[0] = des.bytes[0] >> 1;
 		nums--;
 	}
 	return des;
@@ -172,7 +358,7 @@ void QInt::bintobin(string str) //chuyển 1 chuỗi string nhị phân lưu v
 	}
 }
 
-void QInt::dectobin(string str)  //chuyển chuỗi dec thành nhị phân lưu vào qỉnt
+ void QInt::dectobin(string str)  //chuyển chuỗi dec thành nhị phân lưu vào qỉnt
 {
 
 	bool isNegative = false;  //xét số âm hay dương tức chuỗi sẽ bắt đầu bằng '-' (dấu trừ)
@@ -499,11 +685,11 @@ void QInt::printQInt(int base, ostream& outputDev)
 
 }
 
-void Readfile()
+void Readfile(string a, string b)
 {
 	string line;
-	ifstream infile("input.txt");
-	ofstream outfile("output.txt", ios::app);
+	ifstream infile(a);
+	ofstream outfile(b, ios::app);
 	while (getline(infile, line))
 	{
 		Process_operator(line, outfile);
@@ -525,55 +711,47 @@ void Process_operator(string line, ostream& outputDev)
 	{
 		if (tt == "+")
 		{
-			outputDev << "0" << endl;
-			return;
+			stringstream temp(line);
+			string operand1, operand2, _operator;
+			temp >> base >> operand1 >> _operator >> operand2;
+			A.scanQInt(operand1, base);  // chuyen co so 
+			B.scanQInt(operand2, base);
 
-			//stringstream temp(line);
-			//temp >> base >> str1 >> str2 >> str2;
-			//A.scanQInt(str1, base);  // chuyen co so 
-			//B.scanQInt(str2, base);
-
-			//A = A + B;
-			//break;
+			A = A + B;
+			break;
 		}
 		if (tt == "-")
 		{
-			outputDev << "0" << endl;
-			return;
 
-			//stringstream temp(line);
-			//temp >> base >> str1 >> str2 >> str2;
-			//A.scanQInt(str1, base);  // chuyen co so 
-			//B.scanQInt(str2, base);
+			stringstream temp(line);
+			string operand1, operand2, _operator;
+			temp >> base >> operand1 >> _operator >> operand2;
+			A.scanQInt(operand1, base);  // chuyen co so 
+			B.scanQInt(operand2, base);
 
-			//A = A - B;
-			//break;
+			A = A - B;
+			break;
 		}
 		if (tt == "*")
 		{
-			outputDev << "0" << endl;
-			return;
-
-			//stringstream temp(line);
-			//temp >> base >> str1 >> str2 >> str2;
-			//A.scanQInt(str1, base);  // chuyen co so 
-			//B.scanQInt(str2, base);
-
-			//A = A * B;
-			//break;
+			string operand1, _operator, operand2;
+			stringstream temp(line);
+			temp >> base >> operand1 >> _operator >> operand2;
+			A.scanQInt(operand1, base);  // chuyen co so 
+			B.scanQInt(operand2, base);
+			A = A * B;
+			break;
 		}
 		if (tt == "/")
 		{
-			outputDev << "0" << endl;
-			return;
+			string operand1, _operator, operand2;
+			stringstream temp(line);
+			temp >> base >> operand1 >> _operator >> operand2;
+			A.scanQInt(operand1, base);  // chuyen co so 
+			B.scanQInt(operand2, base);
 
-			//stringstream temp(line);
-			//temp >> base >> str1 >> str2 >> str2;
-			//A.scanQInt(str1, base);  // chuyen co so 
-			//B.scanQInt(str2, base);
-
-			//A = A / B;
-			//break;
+			A = A / B;
+			break;
 		}
 		if (tt == "&")
 		{

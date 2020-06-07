@@ -12,12 +12,7 @@ using namespace std;
 // HÀM MAIN
 //#include"Header.h"
 //
-//int main()
-//{
-//	Readfile();
-//	system("pause");
-//	return 0;
-//}
+
 
 
 
@@ -30,7 +25,7 @@ public:
 	~QInt();
 	void scanQInt(string, int);
 	void printQInt(int, ostream&);
-
+	string printQInt(int base);
 	void output_console()
 	{
 		for (int i = 0; i < QINT_SIZE; i++)
@@ -43,15 +38,20 @@ public:
 	void dectobin(string); //chuyển vào 1 strig dạng dec và lưu thành nhị phân
 	string bintodec(string); //chuyển 1 string dạng nhị phân sang dec
 	
+
+	bool* DecToBin();
+	QInt BinToDec(bool* bit);
 	void hextobin(string);
 	string bintohex(string);
 
 	void bintobin(string);
 	string bintostring(bool); //neu 0 thi xuat la du 128 bit, neu 1 thi xuat ra loai 0 truoc
 
-
-
-
+	QInt operator =(const QInt X);
+	friend QInt operator+(const QInt& A, const QInt &B);
+	friend QInt operator-(const QInt& A, const QInt& B);
+	friend QInt operator*(const QInt& A, const QInt& B);
+	friend QInt operator/(const QInt& A, const QInt& B);
 	QInt operator& (const QInt& B) const;
 	QInt operator| (const QInt& B) const;
 	QInt operator^ (const QInt& B) const;
@@ -72,5 +72,31 @@ char HexIndex(int);
 
 
 //xu ly file
-void Readfile();
+void Readfile(string a,string b);
 void Process_operator(string, ostream&);
+//int main(int argc,char*argv[])
+//{
+//	if (argc != 3)
+//		return 0;
+//	string a = argv[1];
+//	string b = argv[2];
+//	Readfile(a,b);
+//	system("pause");
+//	return 0;
+//}
+
+int main()
+{
+	QInt a;
+	QInt b;
+	QInt c;
+	string BigInt1;
+	string BigInt2;
+	cout << "Nhap vao a so BigInt1 bang binary :";
+	cin >> BigInt1;
+	a.scanQInt(BigInt1, 2);
+	b = ~a;
+	cout << "Xuat ket qua b= ~a = : ";
+	cout<<b.printQInt(2);
+	return 0;
+}
